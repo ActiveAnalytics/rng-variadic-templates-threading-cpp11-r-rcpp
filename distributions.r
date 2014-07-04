@@ -62,4 +62,4 @@ rbinom(n = 10, size = 10, prob = 5) # gives warning and returns NA since probabi
 n = 1E3
 microbenchmark(runif(n), runifCpp(n, 0, 1), runifCpp_par(n, 0, 1))
 n = 1E7
-microbenchmark(runif(n), runifCpp(n, 0, 1), runifCpp_par(n, 0, 1), times = 1)
+microbenchmark(runif(n), runifCpp(n, 0, 1), runifCpp_par(n, 0, 1), times = 1L)
