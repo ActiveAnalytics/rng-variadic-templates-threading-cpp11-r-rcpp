@@ -158,12 +158,19 @@ SEXP rfCpp(int n, double df1 = 1, double df2 = 1)
 /* Multi-threaded functions */
 
 // Template function for filling the vector
-template<typename T>
-void random_fill(T d, mt19937_64 e, vector<double> &rVec, int iThread, int cLen, int nEl)
+template<template<typename> class D, typename T>
+void random_fill(D<T> d, vector<T> &rVec, int iThread, int nThread)
 {
-	int startEl = cLen * iThread;
-	int endEl = startEl + nEl;
-	generate(rVec.begin() + startEl, rVec.begin() + endEl, [&d, &e](){return d(e);});
+	int startEl = iThread;
+	int i = iThread;
+	int vSize = rVec.size();
+	random_device rdev{};
+	mt19937_64 e{rdev()};
+	while(i < vSize)
+	{
+		rVec[i] = d(e);
+		i += nThread;
+	}
 }
 
 /* Generic sampling Template function as before but this is for multithreaded functions */
@@ -173,19 +180,12 @@ SEXP randomCpp_par(int n, Args&&... args)
 {
 	vector<T> rVec(n);
 	int nThreads = thread::hardware_concurrency();
-	int nEl = n/(nThreads - 1);
-	int rem = n % (nThreads - 1);
-	random_device rdev{};
-	mt19937_64 e{rdev()};
-	using distr = D<T>;
-	distr d{args...};
+	D<T> d{args...};
 	vector<thread> threads;
-	for(int i = 0; i < nThreads - 1; ++i)
+	for(int i = 0; i < nThreads; ++i)
 	{
-		threads.push_back(thread(random_fill<distr>, d, e, ref(rVec), i, nEl, nEl));
+		threads.push_back(thread(random_fill<D, T>, d, ref(rVec), i, nThreads));
 	}
-	if(rem > 0)
-		threads.push_back(thread(random_fill<distr>, d, e, ref(rVec), nThreads - 1, nEl, rem));
 	for_each(threads.begin(), threads.end(), mem_fn(&thread::join));
 	return wrap(rVec);
 }
