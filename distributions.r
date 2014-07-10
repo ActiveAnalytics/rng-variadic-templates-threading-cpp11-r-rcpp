@@ -25,7 +25,8 @@ benchmarks <- summary(microbenchmark(runifCpp(n), rbinomCpp(n, size = 10, prob =
 
 # Re-basing Rcpp benchmarks over R
 benchmarks[,2:6] <- benchmarks[,2:6]/rbaseOutput[,2:6]
-benchmarks[,1] <- c("unif", "binom", "geom", "nbinom", "pois", "exp", "gamma", "weibull", "norm", "lnorm", "chisq", "cauchy", "f")
+benchmarks[,1] <- c("unif", "binom", "geom", "nbinom", "pois", "exp", "gamma", "weibull", "norm", 
+			"lnorm", "chisq", "cauchy", "f")
 names(benchmarks)[1] <- "distr"
 benchmarks <- cbind("call" = "Rcpp", benchmarks)
 
