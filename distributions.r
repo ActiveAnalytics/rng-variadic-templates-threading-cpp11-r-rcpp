@@ -5,49 +5,29 @@ require(microbenchmark)
 
 sourceCpp("distributions.cpp")
 
-genRandom <- function(func, ...)
-{
-	args = list(...)
-	do.call(func, args)
-}
+# Benchmarks
+#----------------------------------------------------------------------------------------------------------
+n = 1E3
 
-funcs <- c("runif", "rbinom", "rgeom", "rnbinom", "rpois", "rexp",
-	"rgamma", "rweibull", "rnorm", "rlnorm", "rchisq", "rcauchy", "rf")
-funcsCpp <- paste0(funcs, "Cpp")
+# R benchmarks
+rbaseOutput <- summary(microbenchmark(runif(n), rbinom(n, size = 10, prob = .5), rgeom(n, prob = .5), rnbinom(n, size = 10, prob = .5), 
+	rpois(n, lambda = 1), rexp(n, rate = 1), rgamma(n, shape = 1, rate = 1), rweibull(n, shape = 1, scale = 1), 
+	rnorm(n, mean = 0, sd = 1), rlnorm(n, mean = 0, sdlog = 1), rchisq(n, df = 5), rcauchy(n), rf(n, df1 = 100, df2 = 100),
+	unit = "ms"))
 
-# The benchmark to be created
-createBenchmark <- function(funcNum = 1, n = 1E3, ...)
-{
-	func <- funcs[funcNum]
-	tempFile <- tempfile()
-	sink(file = tempFile) #prevents verbose printing
-	output <- print(microbenchmark(genRandom(func, n, ...), genRandom(funcsCpp[funcNum], n, ...)))
-	sink()
-	unlink(tempFile)
-	.median <- output[1, "median"]
-	output[,2:6] <- output[,2:6]/.median
-	output[, 1] <- substr(func, 2, nchar(func))
-	names(output)[1] <- "distr"
-	output <- cbind(c("R", "Rcpp"), output)
-	names(output)[1] <- "call"
-	return(output[-1,])
-}
+# Rcpp benchmarks
+benchmarks <- summary(microbenchmark(runifCpp(n), rbinomCpp(n, size = 10, prob = .5), rgeomCpp(n, prob = .5), rnbinomCpp(n, size = 10, prob = .5), 
+	rpoisCpp(n, lambda = 1), rexpCpp(n, rate = 1), rgammaCpp(n, shape = 1, rate = 1), rweibullCpp(n, shape = 1, scale = 1), 
+	rnormCpp(n, mean = 0, sd = 1), rlnormCpp(n, mean = 0, sdlog = 1), rchisqCpp(n, df = 5), rcauchyCpp(n), rfCpp(n, df1 = 100, df2 = 100),
+	unit = "ms"))
 
-bechmarks <- list(createBenchmark(),
-		createBenchmark(funcNum = 2, size = 10, prob = .5),
-		createBenchmark(funcNum = 3, prob = .5),
-		createBenchmark(funcNum = 4, size = 10, prob = .5),
-		createBenchmark(funcNum = 5, lambda = 1),
-		createBenchmark(funcNum = 6, rate = 1),
-		createBenchmark(funcNum = 7, shape = 1, rate = 1),
-		createBenchmark(funcNum = 8, shape = 1, scale = 1),
-		createBenchmark(funcNum = 9, mean = 0, sd = 1),
-		createBenchmark(funcNum = 10, mean = 0, sdlog = 1),
-		createBenchmark(funcNum = 11, df = 5),
-		createBenchmark(funcNum = 12),
-		createBenchmark(funcNum = 13, df1 = 100, df2 = 100))
+# Re-basing Rcpp benchmarks over R
+benchmarks[,2:6] <- benchmarks[,2:6]/rbaseOutput[,2:6]
+benchmarks[,1] <- c("unif", "binom", "geom", "nbinom", "pois", "exp", "gamma", "weibull", "norm", "lnorm", "chisq", "cauchy", "f")
+names(benchmarks)[1] <- "distr"
+benchmarks <- cbind("call" = "Rcpp", benchmarks)
 
-benchmarks <- do.call(rbind, bechmarks)
+#----------------------------------------------------------------------------------------------------------
 
 require(ggplot2)
 ggplot(benchmarks, aes(distr, median)) + geom_bar(stat = "identity") + 
